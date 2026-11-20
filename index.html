@@ -1,0 +1,1257 @@
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Trade Transaction Converter</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f7f8f4;
+      --surface: #ffffff;
+      --ink: #1f2723;
+      --muted: #66706a;
+      --line: #dce2dd;
+      --line-strong: #c3ccc5;
+      --accent: #0f766e;
+      --accent-dark: #115e59;
+      --equity: #2563eb;
+      --fno: #c2410c;
+      --shadow: 0 18px 45px rgba(33, 44, 38, 0.08);
+      --radius: 8px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system,
+        BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: linear-gradient(
+          135deg,
+          rgba(15, 118, 110, 0.08),
+          transparent 34%
+        ),
+        linear-gradient(315deg, rgba(194, 65, 12, 0.08), transparent 30%),
+        var(--page);
+      color: var(--ink);
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .app-shell {
+      width: min(1600px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 40px;
+    }
+
+    .top-bar {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .title-block h1 {
+      margin: 0;
+      font-size: clamp(1.45rem, 4vw, 2.35rem);
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    .title-block p {
+      max-width: 650px;
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 0.98rem;
+      line-height: 1.55;
+    }
+
+    .import-panel {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: stretch;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.88);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .file-drop {
+      position: relative;
+      display: grid;
+      gap: 6px;
+      min-height: 76px;
+      padding: 14px 16px;
+      border: 1px dashed var(--line-strong);
+      border-radius: var(--radius);
+      background: #fbfcfa;
+      cursor: pointer;
+      transition: border-color 160ms ease, background 160ms ease;
+    }
+
+    .file-drop:hover,
+    .file-drop:focus-within,
+    .file-drop.is-dragging {
+      border-color: var(--accent);
+      background: #f0fdfa;
+    }
+
+    .file-drop input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .file-drop strong {
+      align-self: end;
+      font-size: 1rem;
+    }
+
+    .file-drop span {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .clear-button {
+      min-width: 118px;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--ink);
+      cursor: pointer;
+      font-weight: 650;
+      transition: border-color 160ms ease, color 160ms ease,
+        transform 160ms ease;
+    }
+
+    .clear-button:hover {
+      border-color: var(--accent);
+      color: var(--accent-dark);
+      transform: translateY(-1px);
+    }
+
+    .option-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .checkbox-option {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--ink);
+      font-weight: 650;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .checkbox-option input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .option-row small {
+      color: var(--muted);
+      line-height: 1.35;
+      text-align: right;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    .summary-item {
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.78);
+    }
+
+    .summary-item span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .summary-item strong {
+      display: block;
+      margin-top: 4px;
+      font-size: 1.45rem;
+      line-height: 1;
+    }
+
+    .tables-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .table-section {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .table-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfcfa;
+    }
+
+    .table-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .table-title h2 {
+      margin: 0;
+      font-size: 1rem;
+      line-height: 1.2;
+    }
+
+    .table-header small {
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      flex: 0 0 auto;
+    }
+
+    .status-dot.equity {
+      background: var(--equity);
+    }
+
+    .status-dot.fno {
+      background: var(--fno);
+    }
+
+    .table-scroller {
+      max-height: 440px;
+      overflow: auto;
+      flex-grow: 1;
+    }
+
+    table {
+      width: 100%;
+      min-width: 720px;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #eef3ef;
+      color: #35423b;
+      text-align: left;
+      font-size: 0.76rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    th,
+    td {
+      height: 40px;
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--line);
+      white-space: nowrap;
+    }
+
+    th:first-child,
+    td:first-child {
+      width: 40px;
+      text-align: center;
+    }
+
+    tbody tr:hover {
+      background: #f8faf9;
+    }
+
+    td:nth-child(5),
+    td:nth-child(6),
+    td:nth-child(7) {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .table-actions {
+      display: flex;
+      gap: 10px;
+      padding: 12px 16px;
+      border-top: 1px solid var(--line);
+      background: #fbfcfa;
+    }
+
+    .table-actions input[type='text'] {
+      flex-grow: 1;
+      padding: 6px 12px;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius);
+      font-size: 0.9rem;
+    }
+
+    .table-actions input[type='text']:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .download-button {
+      display: inline-block;
+      text-decoration: none;
+      padding: 6px 16px;
+      border: 1px solid var(--accent);
+      border-radius: var(--radius);
+      background: var(--accent);
+      color: #ffffff;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: background 160ms ease, border-color 160ms ease;
+    }
+
+    .download-button:hover {
+      background: var(--accent-dark);
+      border-color: var(--accent-dark);
+    }
+
+    .empty-state {
+      min-height: 400px;
+      display: grid;
+      place-items: center;
+      padding: 28px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .notice {
+      min-height: 22px;
+      margin: 12px 2px 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+
+    .notice.has-error {
+      color: #b42318;
+    }
+
+    .row-checkbox {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    @media (max-width: 820px) {
+      .app-shell {
+        width: min(100% - 20px, 1180px);
+        padding-top: 18px;
+      }
+
+      .top-bar,
+      .import-panel,
+      .tables-grid,
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .top-bar {
+        display: block;
+      }
+
+      .clear-button {
+        min-height: 46px;
+      }
+
+      .option-row {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .option-row small {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="app-shell">
+    <section class="top-bar" aria-labelledby="page-title">
+      <div class="title-block">
+        <h1 id="page-title">Trade Transaction Converter</h1>
+        <p>
+          Import equity and F&amp;O CSV trade files, then review the normalized
+          display rows before conversion.
+        </p>
+      </div>
+    </section>
+
+    <section class="import-panel" aria-label="Import trades">
+      <label class="file-drop" id="file-drop">
+        <strong>Upload CSV files</strong>
+        <span id="file-label"
+          >Choose one or more equity or F&amp;O trade files</span
+        >
+        <input id="file-input" type="file" accept=".csv,text/csv" multiple />
+      </label>
+      <button class="clear-button" id="clear-button" type="button">
+        Clear
+      </button>
+    </section>
+
+    <section class="option-row" aria-label="Processing options">
+      <label class="checkbox-option">
+        <input id="ignore-intraday" type="checkbox" />
+        <span>Ignore intraday</span>
+      </label>
+      <small
+        >When enabled, same-day equity buy and sell quantities are netted after
+        daily clubbing.</small
+      >
+    </section>
+
+    <p class="notice" id="notice" role="status"></p>
+
+    <section class="summary-grid" aria-label="Import summary">
+      <div class="summary-item">
+        <span>Files</span>
+        <strong id="file-count">0</strong>
+      </div>
+      <div class="summary-item">
+        <span>Equity Rows</span>
+        <strong id="equity-count">0</strong>
+      </div>
+      <div class="summary-item">
+        <span>F&amp;O Rows</span>
+        <strong id="fno-count">0</strong>
+      </div>
+    </section>
+
+    <section class="tables-grid" aria-label="Transaction tables">
+      <article class="table-section">
+        <header class="table-header">
+          <div class="table-title">
+            <span class="status-dot equity" aria-hidden="true"></span>
+            <h2>Equity Transactions</h2>
+          </div>
+          <small id="equity-label">0 rows</small>
+        </header>
+        <div class="table-scroller" id="equity-table"></div>
+        <div class="table-actions">
+          <input
+            type="text"
+            id="equity-filename"
+            value="Equity"
+            placeholder="File name"
+          />
+          <a type="button" class="download-button" id="equity-download"
+            >Download XLS</a
+          >
+        </div>
+      </article>
+
+      <article class="table-section">
+        <header class="table-header">
+          <div class="table-title">
+            <span class="status-dot fno" aria-hidden="true"></span>
+            <h2>F&amp;O Transactions</h2>
+          </div>
+          <small id="fno-label">0 rows</small>
+        </header>
+        <div class="table-scroller" id="fno-table"></div>
+        <div class="table-actions">
+          <input
+            type="text"
+            id="fno-filename"
+            value="F&amp;O"
+            placeholder="File name"
+          />
+          <a type="button" class="download-button" id="fno-download"
+            >Download XLS</a
+          >
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <script
+    type="text/javascript"
+    src="https://cdn.jsdelivr.net/npm/excellentexport@3.4.3/dist/excellentexport.min.js"
+  ></script>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const DISPLAY_COLUMNS = [
+        'symbol',
+        'trade_date',
+        'trade_type',
+        'quantity',
+        'price',
+        'brokerage',
+      ];
+      const fileInput = document.querySelector('#file-input');
+      const fileDrop = document.querySelector('#file-drop');
+      const fileLabel = document.querySelector('#file-label');
+      const clearButton = document.querySelector('#clear-button');
+      const ignoreIntradayInput = document.querySelector('#ignore-intraday');
+      const notice = document.querySelector('#notice');
+
+      const state = {
+        files: [],
+        rawEquityRows: [],
+        equityRows: [],
+        rawFnoRows: [],
+        fnoRows: [],
+      };
+
+      const elements = {
+        fileCount: document.querySelector('#file-count'),
+        equityCount: document.querySelector('#equity-count'),
+        fnoCount: document.querySelector('#fno-count'),
+        equityLabel: document.querySelector('#equity-label'),
+        fnoLabel: document.querySelector('#fno-label'),
+        equityTable: document.querySelector('#equity-table'),
+        fnoTable: document.querySelector('#fno-table'),
+        equityFilename: document.querySelector('#equity-filename'),
+        fnoFilename: document.querySelector('#fno-filename'),
+        equityDownload: document.querySelector('#equity-download'),
+        fnoDownload: document.querySelector('#fno-download'),
+      };
+
+      fileInput.addEventListener('change', () => importFiles(fileInput.files));
+      clearButton.addEventListener('click', clearImport);
+      ignoreIntradayInput.addEventListener('change', render);
+
+      elements.equityDownload.addEventListener('click', () =>
+        downloadXls('equity')
+      );
+      elements.fnoDownload.addEventListener('click', () => downloadXls('fno'));
+
+      ['dragenter', 'dragover'].forEach((eventName) => {
+        fileDrop.addEventListener(eventName, (event) => {
+          event.preventDefault();
+          fileDrop.classList.add('is-dragging');
+        });
+      });
+
+      ['dragleave', 'drop'].forEach((eventName) => {
+        fileDrop.addEventListener(eventName, (event) => {
+          event.preventDefault();
+          fileDrop.classList.remove('is-dragging');
+        });
+      });
+
+      fileDrop.addEventListener('drop', (event) => {
+        importFiles(event.dataTransfer.files);
+      });
+
+      // Global event delegation to handle iframe-safe re-renders and dynamic markup loops
+      document.addEventListener('change', (e) => {
+        if (e.target.classList.contains('select-all')) {
+          const type = e.target.getAttribute('data-type');
+          const parent =
+            type === 'equity' ? elements.equityTable : elements.fnoTable;
+          const itemCheckboxes = parent.querySelectorAll('.item-checkbox');
+          itemCheckboxes.forEach((cb) => (cb.checked = e.target.checked));
+        }
+
+        if (e.target.classList.contains('item-checkbox')) {
+          const type = e.target.getAttribute('data-type');
+          const parent =
+            type === 'equity' ? elements.equityTable : elements.fnoTable;
+          const selectAllCheckbox = parent.querySelector('.select-all');
+          if (selectAllCheckbox) {
+            const itemCheckboxes = Array.from(
+              parent.querySelectorAll('.item-checkbox')
+            );
+            selectAllCheckbox.checked = itemCheckboxes.every(
+              (cb) => cb.checked
+            );
+          }
+        }
+      });
+
+      render();
+
+      async function importFiles(fileList) {
+        const csvFiles = Array.from(fileList || []).filter((file) =>
+          isCsvFile(file)
+        );
+
+        if (!csvFiles.length) {
+          showNotice('Select at least one CSV file.', true);
+          return;
+        }
+
+        const importedRows = {
+          equityRows: [],
+          fnoRows: [],
+        };
+        const failedFiles = [];
+
+        for (const file of csvFiles) {
+          try {
+            const text = await file.text();
+            const parsed = parseTradeCsv(text, file.name);
+            importedRows.equityRows.push(...parsed.equityRows);
+            importedRows.fnoRows.push(...parsed.fnoRows);
+          } catch (error) {
+            failedFiles.push(file.name);
+            console.error(error);
+          }
+        }
+
+        state.files = csvFiles.map((file) => file.name);
+        state.rawEquityRows = sortTransactions(importedRows.equityRows);
+        state.rawFnoRows = sortTransactions(importedRows.fnoRows);
+
+        const totalRows = state.rawEquityRows.length + state.rawFnoRows.length;
+        const message = failedFiles.length
+          ? `Imported ${totalRows} rows. Could not read: ${failedFiles.join(
+              ', '
+            )}.`
+          : `Imported ${totalRows} rows from ${csvFiles.length} file${
+              csvFiles.length === 1 ? '' : 's'
+            }.`;
+
+        fileLabel.textContent = state.files.join(', ');
+        showNotice(message, failedFiles.length > 0);
+        render();
+      }
+
+      function parseTradeCsv(text, fileName) {
+        const records = parseCsv(text);
+
+        if (records.length < 2) {
+          throw new Error(`${fileName} does not contain transaction rows.`);
+        }
+
+        const headers = records[0].map(normalizeHeader);
+        const rows = records.slice(1);
+        const result = {
+          equityRows: [],
+          fnoRows: [],
+        };
+
+        rows.forEach((record, index) => {
+          if (!record.some((cell) => String(cell).trim())) return;
+
+          const row = createDisplayRow(record, headers, fileName, index + 2);
+          if (!row.symbol) return;
+          if (shouldIgnoreSymbol(row.symbol)) return;
+
+          if (isFnoTransaction(record, headers, row.symbol)) {
+            result.fnoRows.push(row);
+          } else {
+            result.equityRows.push(row);
+          }
+        });
+
+        return result;
+      }
+
+      function createDisplayRow(record, headers, sourceFile, sourceLine) {
+        const symbol = valueFor(record, headers, ['symbol', 'instrument']);
+        const rawDate = valueFor(record, headers, ['trade_date', 'fill_time']);
+        const tradeType = valueFor(record, headers, ['trade_type', 'type']);
+        const exchange = valueFor(record, headers, ['exchange']);
+
+        return {
+          symbol,
+          trade_date: formatTradeDate(rawDate),
+          trade_type: tradeType.toLowerCase(),
+          quantity: valueFor(record, headers, ['quantity', 'qty']),
+          price: valueFor(record, headers, ['price', 'avg_price']),
+          exchange: normalizeExchange(exchange),
+          sourceFile,
+          sourceLine,
+        };
+      }
+
+      function isFnoTransaction(record, headers, symbol) {
+        return isDerivativeSymbol(symbol);
+      }
+
+      function isDerivativeSymbol(symbol) {
+        const trimmedSymbol = String(symbol || '').trim();
+        return /\d/.test(trimmedSymbol) && /(fut|ce|pe)$/i.test(trimmedSymbol);
+      }
+
+      /**
+       * This checks for:
+       * at least one digit somewhere (\d)
+       * and either:
+       * ends with nifty...fut, or
+       * ends with ce or pe
+       */
+      function shouldIgnoreSymbol(symbol) {
+        const trimmedSymbol = String(symbol || '')
+          .trim()
+          .toLowerCase();
+        return (
+          /\d/.test(trimmedSymbol) &&
+          (/nifty.*fut$/i.test(trimmedSymbol) ||
+            /(ce|pe)$/i.test(trimmedSymbol))
+        );
+      }
+
+      function sortTransactions(rows) {
+        return [...rows].sort((first, second) => {
+          const dateOrder = compareValues(first.trade_date, second.trade_date);
+          if (dateOrder !== 0) return dateOrder;
+
+          const symbolOrder = compareValues(first.symbol, second.symbol);
+          if (symbolOrder !== 0) return symbolOrder;
+
+          return compareValues(first.trade_type, second.trade_type);
+        });
+      }
+
+      function processEquityRows(rows, shouldIgnoreIntraday) {
+        const clubbedRows = clubSameDayRows(rows);
+
+        if (!shouldIgnoreIntraday) {
+          return clubbedRows;
+        }
+
+        return netSameDayEquityRows(clubbedRows);
+      }
+
+      function processFnoRows(rows) {
+        return clubSameDayRows(rows);
+      }
+
+      function clubSameDayRows(rows) {
+        const groupedRows = new Map();
+
+        rows.forEach((row) => {
+          const tradeType = normalizeTradeType(row.trade_type);
+          if (!tradeType) return;
+
+          const exchange = normalizeExchange(row.exchange);
+          const key = [row.symbol, row.trade_date, tradeType, exchange].join(
+            '|'
+          );
+          const quantity = parseNumber(row.quantity);
+          const price = parseNumber(row.price);
+          const existing = groupedRows.get(key);
+
+          if (!existing) {
+            groupedRows.set(
+              key,
+              createAccumulator(row, tradeType, exchange, quantity, price)
+            );
+            return;
+          }
+
+          existing.quantity += quantity;
+          existing.turnover += quantity * price;
+        });
+
+        return Array.from(groupedRows.values()).map(formatAccumulator);
+      }
+
+      function netSameDayEquityRows(rows) {
+        const pairs = new Map();
+        const finalRows = [];
+
+        rows.forEach((row) => {
+          const key = [row.symbol, row.trade_date].join('|');
+          const tradeType = normalizeTradeType(row.trade_type);
+          const pair = pairs.get(key) || {};
+          pair[tradeType] = row;
+          pairs.set(key, pair);
+        });
+
+        pairs.forEach((pair) => {
+          const buyRow = pair.buy;
+          const sellRow = pair.sell;
+
+          if (!buyRow || !sellRow) {
+            finalRows.push(buyRow || sellRow);
+            return;
+          }
+
+          const buyQuantity = parseNumber(buyRow.quantity);
+          const sellQuantity = parseNumber(sellRow.quantity);
+          const remainingQuantity = Math.abs(buyQuantity - sellQuantity);
+
+          if (remainingQuantity === 0) return;
+
+          if (buyQuantity > sellQuantity) {
+            finalRows.push({
+              ...buyRow,
+              quantity: formatNumber(remainingQuantity),
+            });
+          } else {
+            finalRows.push({
+              ...sellRow,
+              quantity: formatNumber(remainingQuantity),
+            });
+          }
+        });
+
+        return sortTransactions(finalRows);
+      }
+
+      function createAccumulator(row, tradeType, exchange, quantity, price) {
+        return {
+          symbol: row.symbol,
+          trade_date: row.trade_date,
+          trade_type: tradeType,
+          exchange,
+          quantity,
+          turnover: quantity * price,
+        };
+      }
+
+      function formatAccumulator(accumulator) {
+        return {
+          symbol: accumulator.symbol,
+          trade_date: accumulator.trade_date,
+          trade_type: accumulator.trade_type,
+          exchange: accumulator.exchange,
+          quantity: formatNumber(accumulator.quantity),
+          price: accumulator.quantity
+            ? formatNumber(accumulator.turnover / accumulator.quantity)
+            : '',
+        };
+      }
+
+      function normalizeTradeType(tradeType) {
+        const normalized = String(tradeType || '')
+          .trim()
+          .toLowerCase();
+
+        if (normalized === 'buy' || normalized === 'sell') {
+          return normalized;
+        }
+
+        return '';
+      }
+
+      function parseNumber(value) {
+        const number = Number(String(value ?? '').replace(/,/g, ''));
+        return Number.isFinite(number) ? number : 0;
+      }
+
+      function formatNumber(value, decimals = 6) {
+        if (!Number.isFinite(value)) return '';
+        return Number(value.toFixed(decimals)).toString();
+      }
+
+      function formatDisplayNumber(value) {
+        const num = parseNumber(value);
+        return num.toFixed(2);
+      }
+
+      function compareValues(first, second) {
+        return String(first).localeCompare(String(second), undefined, {
+          numeric: true,
+          sensitivity: 'base',
+        });
+      }
+
+      function parseCsv(text) {
+        const rows = [];
+        let row = [];
+        let cell = '';
+        let insideQuotes = false;
+
+        for (let index = 0; index < text.length; index += 1) {
+          const character = text[index];
+          const nextCharacter = text[index + 1];
+
+          if (character === '"' && insideQuotes && nextCharacter === '"') {
+            cell += character;
+            index += 1;
+            continue;
+          }
+
+          if (character === '"') {
+            insideQuotes = !insideQuotes;
+            continue;
+          }
+
+          if (character === ',' && !insideQuotes) {
+            row.push(cell.trim());
+            cell = '';
+            continue;
+          }
+
+          if ((character === '\n' || character === '\r') && !insideQuotes) {
+            if (character === '\r' && nextCharacter === '\n') index += 1;
+            row.push(cell.trim());
+            rows.push(row);
+            row = [];
+            cell = '';
+            continue;
+          }
+
+          cell += character;
+        }
+
+        if (cell || row.length) {
+          row.push(cell.trim());
+          rows.push(row);
+        }
+
+        return rows.filter((cells) =>
+          cells.some((cellValue) => cellValue !== '')
+        );
+      }
+
+      function normalizeHeader(header) {
+        return String(header)
+          .trim()
+          .replace(/\.$/, '')
+          .replace(/\s+/g, '_')
+          .replace(/[^a-zA-Z0-9_]/g, '')
+          .toLowerCase();
+      }
+
+      function valueFor(record, headers, possibleNames) {
+        for (const name of possibleNames) {
+          const index = headers.indexOf(name);
+          if (index >= 0) return String(record[index] ?? '').trim();
+        }
+
+        return '';
+      }
+
+      function formatTradeDate(rawDate) {
+        return String(rawDate || '')
+          .trim()
+          .split(/\s|T/)[0];
+      }
+
+      function render() {
+        const processedEquityRows = addBrokerageToRows(
+          sortTransactions(
+            processEquityRows(state.rawEquityRows, ignoreIntradayInput.checked)
+          ),
+          'equity'
+        );
+        const processedFnoRows = addBrokerageToRows(
+          sortTransactions(processFnoRows(state.rawFnoRows)),
+          'fno'
+        );
+
+        state.equityRows = prepareRowsForOutput(processedEquityRows);
+        state.fnoRows = prepareRowsForOutput(processedFnoRows);
+
+        elements.fileCount.textContent = state.files.length;
+        elements.equityCount.textContent = state.equityRows.length;
+        elements.fnoCount.textContent = state.fnoRows.length;
+        elements.equityLabel.textContent = formatRowCount(
+          state.equityRows.length
+        );
+        elements.fnoLabel.textContent = formatRowCount(state.fnoRows.length);
+
+        renderTable(
+          elements.equityTable,
+          state.equityRows,
+          'No equity transactions imported yet.',
+          'equity'
+        );
+        renderTable(
+          elements.fnoTable,
+          state.fnoRows,
+          'No F&O transactions imported yet.',
+          'fno'
+        );
+      }
+
+      function renderTable(container, rows, emptyMessage, type) {
+        if (!rows.length) {
+          container.innerHTML = `<div class="empty-state">${escapeHtml(
+            emptyMessage
+          )}</div>`;
+          return;
+        }
+
+        const headerHtml = `
+          <th scope="col"><input type="checkbox" class="row-checkbox select-all" data-type="${type}" checked></th>
+          ${DISPLAY_COLUMNS.map(
+            (columnName) => `<th scope="col">${escapeHtml(columnName)}</th>`
+          ).join('')}
+        `;
+
+        const rowsHtml = rows
+          .map((row, idx) => {
+            const cells = DISPLAY_COLUMNS.map((columnName) => {
+              let val = row[columnName];
+              if (columnName === 'price' || columnName === 'brokerage') {
+                val = formatDisplayNumber(val);
+              } else if (columnName === 'trade_type') {
+                val = String(val).toUpperCase();
+              }
+              return `<td>${escapeHtml(val)}</td>`;
+            }).join('');
+            return `<tr>
+              <td><input type="checkbox" class="row-checkbox item-checkbox" data-type="${type}" data-index="${idx}" checked></td>
+              ${cells}
+            </tr>`;
+          })
+          .join('');
+
+        container.innerHTML = `
+          <table>
+            <thead>
+              <tr>${headerHtml}</tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        `;
+      }
+
+      function prepareRowsForOutput(rows) {
+        return rows.map((row) => ({
+          ...row,
+          symbol: simplifySymbol(row.symbol),
+        }));
+      }
+
+      function addBrokerageToRows(rows, marketType) {
+        return rows.map((row) => ({
+          ...row,
+          brokerage: calculateBrokerage(
+            marketType,
+            row.trade_type,
+            parseNumber(row.quantity),
+            parseNumber(row.price),
+            row.exchange
+          ),
+        }));
+      }
+
+      function calculateBrokerage(marketType, side, quantity, price, exchange) {
+        const normalizedExchange = normalizeExchange(exchange);
+        const charge =
+          marketType === 'fno'
+            ? calculateDerivativeCharges(
+                side,
+                quantity,
+                price,
+                normalizedExchange
+              )
+            : calculateEquityCharges(side, quantity, price, normalizedExchange);
+
+        return formatNumber(charge, 2);
+      }
+
+      function calculateDerivativeCharges(side, quantity, price, exchange) {
+        const turnover = quantity * price;
+        const brokerage = Math.min(turnover * 0.0003, 20);
+        const stt = side.toLowerCase() === 'sell' ? turnover * 0.0005 : 0;
+        const transactionCharges =
+          exchange === 'NSE' ? turnover * 0.0000183 : 0;
+        const sebiCharges = turnover * (10 / 10000000);
+        const stampCharges =
+          side.toLowerCase() === 'buy' ? turnover * 0.00002 : 0;
+        const gst = 0.18 * (brokerage + sebiCharges + transactionCharges);
+        const totalCharges =
+          brokerage +
+          stt +
+          transactionCharges +
+          sebiCharges +
+          stampCharges +
+          gst;
+
+        return Number(totalCharges.toFixed(2));
+      }
+
+      function calculateEquityCharges(side, quantity, price, exchange) {
+        const turnover = quantity * price;
+        const brokerage = 0;
+        const stt = turnover * 0.001;
+        const transactionCharges =
+          exchange === 'NSE' ? turnover * 0.0000307 : turnover * 0.0000375;
+        const sebiCharges = turnover * (10 / 10000000);
+        const stampCharges =
+          side.toLowerCase() === 'buy' ? turnover * 0.00015 : 0;
+        const gst = 0.18 * (brokerage + sebiCharges + transactionCharges);
+        const totalCharges =
+          brokerage +
+          stt +
+          transactionCharges +
+          sebiCharges +
+          stampCharges +
+          gst;
+
+        return Number(totalCharges.toFixed(2));
+      }
+
+      function simplifySymbol(symbol) {
+        const match = String(symbol || '')
+          .trim()
+          .match(/^[a-zA-Z&-]+/);
+        return match ? match[0] : String(symbol || '').trim();
+      }
+
+      function normalizeExchange(exchange) {
+        const normalized = String(exchange || '')
+          .trim()
+          .toUpperCase();
+        return normalized === 'NSE' || normalized === 'BSE'
+          ? normalized
+          : 'NSE';
+      }
+
+      function formatRowCount(count) {
+        return `${count} row${count === 1 ? '' : 's'}`;
+      }
+
+      function showNotice(message, isError = false) {
+        notice.textContent = message;
+        notice.classList.toggle('has-error', isError);
+      }
+
+      function downloadXls(type) {
+        const rows = type === 'equity' ? state.equityRows : state.fnoRows;
+        const container =
+          type === 'equity' ? elements.equityTable : elements.fnoTable;
+        const filenameInput =
+          type === 'equity' ? elements.equityFilename : elements.fnoFilename;
+
+        if (!rows.length) {
+          showNotice('No data available to download.', true);
+          return;
+        }
+
+        const checkboxes = container.querySelectorAll('.item-checkbox');
+        const exportData = [];
+
+        checkboxes.forEach((cb) => {
+          if (cb.checked) {
+            const index = parseInt(cb.getAttribute('data-index'), 10);
+            const row = rows[index];
+            exportData.push({
+              symbol: row.symbol,
+              trade_date: row.trade_date,
+              trade_type: String(row.trade_type).toUpperCase(),
+              quantity: row.quantity,
+              price: formatDisplayNumber(row.price),
+              brokerage: formatDisplayNumber(row.brokerage),
+            });
+          }
+        });
+
+        if (!exportData.length) {
+          showNotice('Please select at least one row to download.', true);
+          return;
+        }
+
+        let xlsContent = [];
+        xlsContent.push(DISPLAY_COLUMNS);
+
+        exportData.forEach((row) => {
+          xlsContent.push([
+            row.symbol,
+            row.trade_date,
+            row.trade_type,
+            row.quantity,
+            row.price,
+            row.brokerage,
+          ]);
+        });
+
+        let filename = String(filenameInput.value || '').trim();
+        if (!filename) filename = type === 'equity' ? 'Equity' : 'F&O';
+        if (!filename.toLowerCase().endsWith('.xlsx')) filename += '.xlsx';
+
+        const exportResult = ExcellentExport.convert(
+          {
+            anchor: type + `-download`,
+            filename: filename,
+            format: 'xlsx',
+          },
+          [
+            {
+              name: 'Sheet 1',
+              from: {
+                array: xlsContent,
+              },
+            },
+          ]
+        );
+
+        return exportResult;
+      }
+
+      function clearImport() {
+        state.files = [];
+        state.rawEquityRows = [];
+        state.equityRows = [];
+        state.rawFnoRows = [];
+        state.fnoRows = [];
+        fileInput.value = '';
+        ignoreIntradayInput.checked = false;
+        fileLabel.textContent = 'Choose one or more equity or F&O trade files';
+        elements.equityFilename.value = 'Equity';
+        elements.fnoFilename.value = 'F&O';
+        showNotice('');
+        render();
+      }
+
+      function isCsvFile(file) {
+        return (
+          file.name.toLowerCase().endsWith('.csv') || file.type === 'text/csv'
+        );
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+    })();
+  </script>
+</body>
